@@ -3,7 +3,7 @@ using UnityEngine.Rendering;
 
 namespace PostProcess
 {
-    [CreateAssetMenu(menuName = "Custom/ForwardPbr")]
+    [CreateAssetMenu(menuName = "Custom/PostProcess")]
     public class PostProcessRenderPipelineAsset : RenderPipelineAsset
     {
         protected override RenderPipeline CreatePipeline()
