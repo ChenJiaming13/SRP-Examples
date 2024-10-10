@@ -17,6 +17,7 @@ Shader "Custom/VirtualTexture"
 
             #pragma vertex vert
             #pragma fragment frag
+            #pragma target 5.0
 
             struct Attributes
             {
@@ -33,6 +34,7 @@ Shader "Custom/VirtualTexture"
             float4x4 unity_ObjectToWorld;
             float4x4 unity_MatrixVP;
             float4 _VTFeedbackParam;
+            RWStructuredBuffer<int> _FeedbackBuffer : register(u2);
 
             Varyings vert(Attributes IN)
             {
@@ -51,6 +53,10 @@ Shader "Custom/VirtualTexture"
 	            float mip = clamp(0.5 * log2(max(dot(dx, dx), dot(dy, dy))), _VTFeedbackParam.w, _VTFeedbackParam.z);
                 mip = floor(mip);
                 page = floor(page / exp2(mip));
+                int col = int(page.x);
+                int row = int(page.y);
+                int idx = col + row * _VTFeedbackParam.x + int(mip) * _VTFeedbackParam.x * _VTFeedbackParam.x;
+                _FeedbackBuffer[idx] = 1;
 	            return float4(page / _VTFeedbackParam.xx, mip / _VTFeedbackParam.z, 1);
             }
             

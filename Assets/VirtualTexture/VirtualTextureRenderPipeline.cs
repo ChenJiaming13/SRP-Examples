@@ -8,15 +8,32 @@ namespace VirtualTexture
 {
     public class VirtualTextureRenderPipeline : RenderPipeline
     {
-        private readonly RenderTexture m_FeedbackTexture = new(Screen.width, Screen.height, 0, RenderTextureFormat.ARGB32,
-            RenderTextureReadWrite.Linear);
-        private readonly RenderTexture m_FeedbackDepthTexture = new RenderTexture(Screen.width, Screen.height, 24, RenderTextureFormat.Depth,
-            RenderTextureReadWrite.Linear);
-
         private const int PAGE_SIZE = 8; // exp2(m_MaxMipmapLevel)
         private const int PAGE_RESOLUTION = 512;
         private const int MIN_MIPMAP_LEVEL = 0;
         private const int MAX_MIPMAP_LEVEL = 3;
+        
+        private readonly RenderTexture m_FeedbackTexture = new(Screen.width, Screen.height, 0, RenderTextureFormat.ARGB32,
+            RenderTextureReadWrite.Linear);
+        private readonly RenderTexture m_FeedbackDepthTexture = new RenderTexture(Screen.width, Screen.height, 24, RenderTextureFormat.Depth,
+            RenderTextureReadWrite.Linear);
+        
+        private ComputeBuffer m_FeedbackBuffer = new(
+            PAGE_SIZE * PAGE_SIZE * (MAX_MIPMAP_LEVEL - MIN_MIPMAP_LEVEL + 1),
+            sizeof(int),
+            ComputeBufferType.Default
+        );
+        
+        private int[] m_FeedbackBufferData = new int [PAGE_SIZE * PAGE_SIZE * (MAX_MIPMAP_LEVEL - MIN_MIPMAP_LEVEL + 1)];
+
+        public VirtualTextureRenderPipeline()
+        {
+            for (var i = 0; i < m_FeedbackBufferData.Length; i++)
+            {
+                m_FeedbackBufferData[i] = 0;
+            }
+            m_FeedbackBuffer.SetData(m_FeedbackBufferData);
+        }
 
         protected override void Render(ScriptableRenderContext context, Camera[] cameras)
         {
@@ -30,12 +47,39 @@ namespace VirtualTexture
         {
             var cmd = CommandBufferPool.Get();
             FeedbackPass(context, camera, cmd);
-            FeedbackRead();
+            FetchFeedbackData();
+            // FeedbackRead();
             // FinalPass(context, camera, cmd);
             TestPass(context, camera, cmd);
             CommandBufferPool.Release(cmd);
         }
 
+        private void FetchFeedbackData()
+        {
+            m_FeedbackBuffer.GetData(m_FeedbackBufferData);
+            var ss = "";
+            var count = 0;
+            for (var mip = MIN_MIPMAP_LEVEL; mip <= MAX_MIPMAP_LEVEL; ++mip)
+            {
+                for (var row = 0; row < PAGE_SIZE; ++row)
+                {
+                    for (var col = 0; col < PAGE_SIZE; ++col)
+                    {
+                        var idx = col + row * PAGE_SIZE + mip * PAGE_SIZE * PAGE_SIZE;
+                        if (m_FeedbackBufferData[idx] != 1) continue;
+                        ss += $"({mip}-{row}-{col})";
+                        count++;
+                    }
+                }
+            }
+            Debug.Log(count + ": " + ss);
+            for (var i = 0; i < m_FeedbackBufferData.Length; i++)
+            {
+                m_FeedbackBufferData[i] = 0;
+            }
+            m_FeedbackBuffer.SetData(m_FeedbackBufferData);
+        }
+        
         private void FeedbackRead()
         {
             var width = m_FeedbackTexture.width;
@@ -79,11 +123,9 @@ namespace VirtualTexture
             context.SetupCameraProperties(camera);
             cmd.SetRenderTarget(m_FeedbackTexture, m_FeedbackDepthTexture);
             cmd.ClearRenderTarget(true, true, new Color(0.0f, 0.0f, 0.0f, 0.0f), 1.0f);
-            // x: Page Size (Level 0)
-            // y: Page Resolution
-            // z: Max Mipmap Level
-            // w: Min Mipmap Level
             cmd.SetGlobalVector("_VTFeedbackParam", new Vector4(PAGE_SIZE, PAGE_RESOLUTION, MAX_MIPMAP_LEVEL, MIN_MIPMAP_LEVEL));
+            // cmd.SetGlobalBuffer("_FeedbackBuffer", m_FeedbackBuffer);
+            Graphics.SetRandomWriteTarget(2, m_FeedbackBuffer);
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();
             RenderObjects(context, camera, "VirtualTextureFeedback");
