@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -78,33 +75,33 @@ namespace VirtualTexture
             Debug.Log(count + ": " + ss);
         }
         
-        private void ReadBackFromColorTexture()
-        {
-            var width = m_ColorTexture.width;
-            var height = m_ColorTexture.height;
-            var t2d = new Texture2D(width, height, TextureFormat.ARGB32, false);
-            var oldRT = RenderTexture.active;
-            RenderTexture.active = m_ColorTexture;
-            t2d.ReadPixels(new Rect(0, 0, width, height), 0, 0, false);
-            t2d.Apply();
-            RenderTexture.active = oldRT;
-            var pixels = t2d.GetPixels(0, 0, width, height);
-            // var bytes = t2d.EncodeToPNG();
-            // File.WriteAllBytes("Assets\\test.png", bytes);
-            var pages = new HashSet<Tuple<int, int, int>>();
-            foreach (var pixel in pixels)
-            {
-                if (pixel.a < 0.5f) continue;
-                pages.Add(new Tuple<int, int, int>(
-                    (int)(pixel.r * m_Settings.pageSize),
-                    (int)(pixel.g * m_Settings.pageSize),
-                    (int)(pixel.b * m_Settings.maxMipmapLevel)
-                ));
-            }
-            // Debug.Log(pages.Count);
-            var ss = pages.Aggregate($"{pages.Count}: ", (current, page) => current + $"({page.Item1}-{page.Item2}-{page.Item3}) ");
-            Debug.Log(ss);
-        }
+        // private void ReadBackFromColorTexture()
+        // {
+        //     var width = m_ColorTexture.width;
+        //     var height = m_ColorTexture.height;
+        //     var t2d = new Texture2D(width, height, TextureFormat.ARGB32, false);
+        //     var oldRT = RenderTexture.active;
+        //     RenderTexture.active = m_ColorTexture;
+        //     t2d.ReadPixels(new Rect(0, 0, width, height), 0, 0, false);
+        //     t2d.Apply();
+        //     RenderTexture.active = oldRT;
+        //     var pixels = t2d.GetPixels(0, 0, width, height);
+        //     // var bytes = t2d.EncodeToPNG();
+        //     // File.WriteAllBytes("Assets\\test.png", bytes);
+        //     var pages = new HashSet<Tuple<int, int, int>>();
+        //     foreach (var pixel in pixels)
+        //     {
+        //         if (pixel.a < 0.5f) continue;
+        //         pages.Add(new Tuple<int, int, int>(
+        //             (int)(pixel.r * m_Settings.pageSize),
+        //             (int)(pixel.g * m_Settings.pageSize),
+        //             (int)(pixel.b * m_Settings.maxMipmapLevel)
+        //         ));
+        //     }
+        //     // Debug.Log(pages.Count);
+        //     var ss = pages.Aggregate($"{pages.Count}: ", (current, page) => current + $"({page.Item1}-{page.Item2}-{page.Item3}) ");
+        //     Debug.Log(ss);
+        // }
      
         private int CalcFeedbackBufferLength()
         {
