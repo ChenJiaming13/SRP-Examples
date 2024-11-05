@@ -12,7 +12,7 @@ namespace VirtualTexture
             m_Settings = settings;
         }
         
-        public override void Execute(ScriptableRenderContext context, Camera camera)
+        public void Execute(ScriptableRenderContext context, Camera camera)
         {
             var cmd = CommandBufferPool.Get();
             context.SetupCameraProperties(camera);

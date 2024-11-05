@@ -2,7 +2,7 @@ using System;
 
 namespace VirtualTexture
 {
-    public readonly struct Page
+    public class Page
     {
         public readonly int Mip;
         public readonly int Row;

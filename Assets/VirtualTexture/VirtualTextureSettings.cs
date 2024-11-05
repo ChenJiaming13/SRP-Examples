@@ -1,18 +1,22 @@
+using System;
+
 namespace VirtualTexture
 {
-    public class VirtualTextureSettings
+    [Serializable]
+    public struct VirtualTextureSettings
     {
-        public int pageResolution { get; set; } = 512;
+        public int pageResolution;
 
-        public int pageSize { get; set; } = 8;
+        public int pageSize;
         
-        public int minMipmapLevel { get; set; } = 0;
+        public int minMipmapLevel;
         
-        public int maxMipmapLevel { get; set; } = 3;
+        public int maxMipmapLevel;
 
-        public string texturesDir { get; set; } = "Assets/VirtualTexture/TestTextures";
+        public string texturesDir;
 
-        public int phyPageRows { get; set; } = 4;
-        public int phyPageCols { get; set; } = 3;
+        public int phyPageRows;
+        
+        public int phyPageCols;
     }
 }

@@ -6,10 +6,10 @@ namespace VirtualTexture
     [CreateAssetMenu(menuName="Custom/VirtualTexture")]
     public class VirtualTextureRenderPipelineAsset : RenderPipelineAsset
     {
-        private readonly VirtualTextureSettings m_Settings = new();
+        public VirtualTextureSettings settings;
         protected override RenderPipeline CreatePipeline()
         {
-            return new VirtualTextureRenderPipeline(m_Settings);
+            return new VirtualTextureRenderPipeline(settings);
         }
     }
 }

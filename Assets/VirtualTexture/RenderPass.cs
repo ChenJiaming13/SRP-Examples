@@ -5,8 +5,6 @@ namespace VirtualTexture
 {
     public abstract class RenderPass
     {
-        public abstract void Execute(ScriptableRenderContext context, Camera camera);
-        
         protected static void RenderObjects(ScriptableRenderContext context, Camera camera, string passName)
         {
             if (!camera.TryGetCullingParameters(out var cullingParameters)) return;

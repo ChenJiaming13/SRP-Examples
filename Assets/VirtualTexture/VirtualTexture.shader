@@ -34,7 +34,7 @@ Shader "Custom/VirtualTexture"
             float4x4 unity_ObjectToWorld;
             float4x4 unity_MatrixVP;
             float4 _VTFeedbackParam;
-            RWStructuredBuffer<int> _FeedbackBuffer : register(u2);
+            RWStructuredBuffer<int> _FeedbackBuffer : register(u1);
 
             Varyings vert(Attributes IN)
             {

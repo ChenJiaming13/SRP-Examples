@@ -12,3 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 702f73d48deaaae4587b87737107fee1, type: 3}
   m_Name: VirtualTextureRenderPipelineAsset
   m_EditorClassIdentifier: 
+  settings:
+    pageResolution: 512
+    pageSize: 8
+    minMipmapLevel: 0
+    maxMipmapLevel: 3
+    texturesDir: Assets/VirtualTexture/TestTextures
+    phyPageRows: 4
+    phyPageCols: 4

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -20,7 +21,7 @@ namespace VirtualTexture
             m_FeedbackBufferData = new int [CalcFeedbackBufferLength()];
         }
 
-        public override void Execute(ScriptableRenderContext context, Camera camera)
+        public List<Page> Execute(ScriptableRenderContext context, Camera camera)
         {
             ClearFeedbackBuffer();
             
@@ -35,13 +36,13 @@ namespace VirtualTexture
                 m_Settings.minMipmapLevel
             ));
             // cmd.SetGlobalBuffer("_FeedbackBuffer", m_FeedbackBuffer);
-            Graphics.SetRandomWriteTarget(2, m_FeedbackBuffer);
+            Graphics.SetRandomWriteTarget(1, m_FeedbackBuffer);
             context.ExecuteCommandBuffer(cmd);
             RenderObjects(context, camera, "VirtualTextureFeedback");
             context.Submit();
             CommandBufferPool.Release(cmd);
             
-            ReadBack();
+            return ReadBack();
             // ReadBackFromColorTexture(); // too slow
         }
         
@@ -54,11 +55,11 @@ namespace VirtualTexture
             CommandBufferPool.Release(cmd);
         }
 
-        private void ReadBack()
+        private List<Page> ReadBack()
         {
             m_FeedbackBuffer.GetData(m_FeedbackBufferData);
-            var ss = "";
             var count = 0;
+            var pages = new List<Page>();
             for (var mip = m_Settings.minMipmapLevel; mip <= m_Settings.maxMipmapLevel; ++mip)
             {
                 for (var row = 0; row < m_Settings.pageSize; ++row)
@@ -67,12 +68,13 @@ namespace VirtualTexture
                     {
                         var idx = col + row * m_Settings.pageSize + mip * m_Settings.pageSize * m_Settings.pageSize;
                         if (m_FeedbackBufferData[idx] != 1) continue;
-                        ss += $"({mip}-{row}-{col})";
+                        pages.Add(new Page(mip, row, col));
                         count++;
                     }
                 }
             }
-            Debug.Log(count + ": " + ss);
+            // Debug.Log(count + ": " + pages);
+            return pages;
         }
         
         // private void ReadBackFromColorTexture()
