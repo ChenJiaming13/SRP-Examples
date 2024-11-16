@@ -17,6 +17,6 @@ MonoBehaviour:
     pageSize: 8
     minMipmapLevel: 0
     maxMipmapLevel: 3
-    texturesDir: Assets/VirtualTexture/TestTextures
-    phyPageRows: 4
-    phyPageCols: 4
+    texturesDir: VirtualTexture/TestTextures
+    phyPageRows: 6
+    phyPageCols: 8

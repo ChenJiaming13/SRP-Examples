@@ -6,8 +6,8 @@ namespace VirtualTexture
     public class VirtualTextureRenderPipeline : RenderPipeline
     {
         private readonly FeedbackPass m_FeedbackPass;
-        private FinalPass m_FinalPass;
-        private PageManager m_PageManager;
+        private readonly FinalPass m_FinalPass;
+        private readonly PageManager m_PageManager;
 
         public VirtualTextureRenderPipeline(VirtualTextureSettings settings)
         {
@@ -28,8 +28,14 @@ namespace VirtualTexture
         {
             var pages = m_FeedbackPass.Execute(context, camera);
             m_PageManager.RequestPages(pages);
-            m_FeedbackPass.Test(context, camera);
-            // m_FinalPass.Execute(context, camera);
+            // m_FeedbackPass.Test(context, camera);
+            var cmd = CommandBufferPool.Get();
+            cmd.SetGlobalTexture("_PageTable", m_PageManager.GetPageTable());
+            cmd.SetGlobalTexture("_PhysicalTexture", m_PageManager.GetPhysicalTexture());
+            context.ExecuteCommandBuffer(cmd);
+            CommandBufferPool.Release(cmd);
+            cmd.Clear();
+            m_FinalPass.Execute(context, camera);
         }
     }
 }

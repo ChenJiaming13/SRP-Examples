@@ -14,13 +14,23 @@ namespace VirtualTexture
         
         public void Execute(ScriptableRenderContext context, Camera camera)
         {
-            var cmd = CommandBufferPool.Get();
             context.SetupCameraProperties(camera);
+            var cmd = CommandBufferPool.Get();
             cmd.ClearRenderTarget(true, true, new Color(0.0f, 0.0f, 0.0f, 0.0f), 1.0f);
+            cmd.SetGlobalVector("_PhyTextureParam", new Vector4(
+                m_Settings.phyPageRows,
+                m_Settings.phyPageCols,
+                0.0f,
+                0.0f
+            ));
+            context.ExecuteCommandBuffer(cmd);
+            CommandBufferPool.Release(cmd);
+            cmd.Clear();
             RenderObjects(context, camera, "SRPDefaultUnlit");
             context.DrawSkybox(camera);
+            context.DrawGizmos(camera, GizmoSubset.PreImageEffects);
+            context.DrawGizmos(camera, GizmoSubset.PostImageEffects);
             context.Submit();
-            CommandBufferPool.Release(cmd);
         }
     }
 }

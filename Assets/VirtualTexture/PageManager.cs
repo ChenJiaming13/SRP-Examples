@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEngine;
 
@@ -29,7 +30,7 @@ namespace VirtualTexture
         private readonly Page[,] m_PhysicalPages;
         private readonly bool[,] m_PhysicalPageMarks;
         private readonly Texture2D m_PhysicalTexture;
-        private Dictionary<Page, Texture2D> m_VirtualTextures;
+        private readonly Dictionary<Page, Texture2D> m_VirtualTextures;
         
         public PageManager(VirtualTextureSettings settings)
         {
@@ -56,6 +57,24 @@ namespace VirtualTexture
                 false
             );
             m_VirtualTextures = new Dictionary<Page, Texture2D>();
+            
+            // TODO: TEST
+            var gameObject = GameObject.Find("VisPhyTextures");
+            if (gameObject != null)
+            {
+                gameObject.GetComponent<MeshRenderer>().sharedMaterial.mainTexture = m_PhysicalTexture;
+                Debug.Log("Detected: VisPhyTextures");
+            }
+        }
+
+        public Texture2D GetPageTable()
+        {
+            return m_PageTable;
+        }
+
+        public Texture2D GetPhysicalTexture()
+        {
+            return m_PhysicalTexture;
         }
         
         public void RequestPages(List<Page> pages)
@@ -73,7 +92,7 @@ namespace VirtualTexture
             var uncachedPages = new List<Page>();
             foreach (var page in pages)
             {
-                var phyPageCoord = QueryPhyPageCoord(page);
+                var phyPageCoord = GetPte(page);
                 if (phyPageCoord != null) m_PhysicalPageMarks[phyPageCoord.Row, phyPageCoord.Col] = true;
                 else uncachedPages.Add(page);
             }
@@ -81,8 +100,10 @@ namespace VirtualTexture
             if (uncachedPages.Count > 0)
             {
                 var ss = uncachedPages.Aggregate("", (current, uncachedPage) => current + (uncachedPage + " "));
-                Debug.Log($"num of uncached pages: {uncachedPages.Count} | {ss}");
+                // Debug.Log($"num of uncached pages: {uncachedPages.Count} | {ss}");
             }
+
+            var requiredPages = new List<Page>();
             foreach (var uncachedPage in uncachedPages)
             {
                 var phyPageCoord = AllocatePhysicalPage(out var oldPage);
@@ -92,33 +113,37 @@ namespace VirtualTexture
                     //     $"virtual page: {uncachedPage} cannot be cached because there is not enough space");
                     continue;
                 }
-                var pte = new Color(
-                    phyPageCoord.Row * 1.0f / m_Settings.phyPageRows,
-                    phyPageCoord.Col * 1.0f / m_Settings.phyPageCols,
-                    0.0f,
-                    1.0f
-                );
+                requiredPages.Add(uncachedPage);
                 // If it is a page that is not needed for the current frame but has been cached to the physical pages
                 // it needs to be reset pte by m_PageTable.SetPixel
-                if (oldPage != null)
-                {
-                    m_PageTable.SetPixel(oldPage.Col, oldPage.Row, new Color(0.0f, 0.0f, 0.0f, 0.0f), oldPage.Mip);
-                }
-                m_PageTable.SetPixel(uncachedPage.Col, uncachedPage.Row, pte, uncachedPage.Mip);
+                if (oldPage != null) SetPte(oldPage, null);
+                SetPte(uncachedPage, phyPageCoord);
                 m_PhysicalPages[phyPageCoord.Row, phyPageCoord.Col] = uncachedPage;
                 m_PhysicalPageMarks[phyPageCoord.Row, phyPageCoord.Col] = true;
             }
             m_PageTable.Apply(false);
             // TODO: 加载当前未缓存的Page到Physical Pages
+            FillPhysicalTexture(requiredPages);
         }
 
-        private PhyPageCoord QueryPhyPageCoord(Page page)
+        private PhyPageCoord GetPte(Page page)
         {
             var pte = m_PageTable.GetPixel(page.Col, page.Row, page.Mip);
             if (pte.a == 0.0f) return null;
             var row = Mathf.RoundToInt(pte.r * m_Settings.phyPageRows);
             var col = Mathf.RoundToInt(pte.g * m_Settings.phyPageCols);
             return new PhyPageCoord(row, col);
+        }
+
+        private void SetPte(Page page, PhyPageCoord coord)
+        {
+            var pte = coord == null ? new Color(0.0f, 0.0f, 0.0f, 0.0f) : new Color(
+                coord.Row * 1.0f / m_Settings.phyPageRows,
+                coord.Col * 1.0f / m_Settings.phyPageCols,
+                0.0f,
+                1.0f
+            );
+            m_PageTable.SetPixel(page.Col, page.Row, pte, page.Mip);
         }
 
         private PhyPageCoord AllocatePhysicalPage(out Page page)
@@ -134,6 +159,37 @@ namespace VirtualTexture
             }
             page = null;
             return null;
+        }
+
+        private void FillPhysicalTexture(List<Page> requiredPages)
+        {
+            // Debug.Log($"Virtual Textures: {m_VirtualTextures.Count}");
+            foreach (var page in requiredPages)
+            {
+                var phyPageCoord = GetPte(page);
+                var texture = GetOrLoadPage(page);
+                if (texture == null) continue;
+                var pixels = texture.GetPixels();
+                var x = phyPageCoord.Row * m_Settings.pageResolution;
+                var y = phyPageCoord.Col * m_Settings.pageResolution;
+                m_PhysicalTexture.SetPixels(x, y, texture.width, texture.height, pixels);
+            }
+            m_PhysicalTexture.Apply();
+        }
+        
+        private Texture2D GetOrLoadPage(Page page)
+        {
+            if (m_VirtualTextures.TryGetValue(page, out var cachedTexture)) return cachedTexture;
+            var pageFileName = $"{m_Settings.maxMipmapLevel - page.Mip}-{page.Row}-{page.Col}"; // do not add suffix
+            var path = Path.Combine(m_Settings.texturesDir, pageFileName);
+            var texture = Resources.Load<Texture2D>(path);
+            if (texture == null)
+            {
+                Debug.LogWarning($"The file {path} could not be found!");
+                return null;
+            }
+            m_VirtualTextures.Add(page, texture);
+            return texture;
         }
     }
 }
